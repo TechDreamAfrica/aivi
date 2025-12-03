@@ -2031,8 +2031,8 @@ Say any command to begin, or ask "What can you help me with?" for specific guida
         """Search using OpenAI and cache results to offline knowledge base"""
         try:
             # First check offline knowledge base
-            if self.offline_data_manager:
-                offline_results = self.offline_data_manager.search_offline_data(query)
+            if self.offline_data:
+                offline_results = self.offline_data.search_offline_data(query)
                 if offline_results and offline_results[0].get('confidence', 0) >= 0.85:
                     best_result = offline_results[0]
                     cached_response = f"""📚 From Knowledge Base: "{query}"
@@ -2079,9 +2079,9 @@ Say any command to begin, or ask "What can you help me with?" for specific guida
                     result = response.choices[0].message.content
                     
                     # Add to offline knowledge base
-                    if self.offline_data_manager:
+                    if self.offline_data:
                         try:
-                            self.offline_data_manager.add_to_knowledge_base(
+                            self.offline_data.add_to_knowledge_base(
                                 category="AI_Generated",
                                 question=query,
                                 answer=result,
