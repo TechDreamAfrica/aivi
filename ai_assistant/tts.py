@@ -14,9 +14,9 @@ def play_beep(frequency=1000, duration=200):
     try:
         import winsound
         winsound.Beep(frequency, duration)
-    except ImportError:
-        # winsound not available on non-Windows systems
-        print(f"[Beep] {frequency}Hz for {duration}ms")
+    except (ImportError, RuntimeError) as e:
+        # winsound not available on non-Windows systems or in certain environments
+        print(f"[Beep] {frequency}Hz for {duration}ms (audio not available: {type(e).__name__})")
     except Exception as e:
         print(f"[Beep] Error playing beep: {e}")
 

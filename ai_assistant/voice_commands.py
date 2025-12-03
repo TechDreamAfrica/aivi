@@ -54,20 +54,36 @@ def listen_for_command():
             print(f"[Voice] Recognized: {command}")
 
             # Play confirmation beep
-            winsound.Beep(800, 100)
+            try:
+                import winsound
+                winsound.Beep(800, 100)
+            except (ImportError, RuntimeError):
+                pass
 
             return command
         except sr.WaitTimeoutError:
             print("[Voice] Timeout. No speech detected.")
-            winsound.Beep(400, 300)  # Low beep for error
+            try:
+                import winsound
+                winsound.Beep(400, 300)  # Low beep for error
+            except (ImportError, RuntimeError):
+                pass
             return ""
         except sr.UnknownValueError:
             print("[Voice] Could not understand audio.")
-            winsound.Beep(400, 300)  # Low beep for error
+            try:
+                import winsound
+                winsound.Beep(400, 300)  # Low beep for error
+            except (ImportError, RuntimeError):
+                pass
             return ""
         except Exception as e:
             print(f"[Voice] Error: {e}")
-            winsound.Beep(400, 300)  # Low beep for error
+            try:
+                import winsound
+                winsound.Beep(400, 300)  # Low beep for error
+            except (ImportError, RuntimeError):
+                pass
             return ""
 
 def listen_for_continuous_conversation(callback=None):

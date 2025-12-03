@@ -2,12 +2,20 @@
 Academic Content Search and Retrieval module with OpenAI and Google Scholar integration
 """
 import os
-from scholarly import scholarly
+
+# Try to import scholarly, but don't fail if it's not available
+try:
+    from scholarly import scholarly
+except ImportError:
+    scholarly = None
 
 def search_content(query):
     """
     Search Google Scholar for academic content
     """
+    if scholarly is None:
+        return "Google Scholar search is not available. Please install scholarly: pip install scholarly"
+    
     try:
         print(f"[Search] Searching Google Scholar for: {query}")
 
