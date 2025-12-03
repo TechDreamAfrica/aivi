@@ -106,6 +106,10 @@ except ImportError:
 def safe_tts_speak(text, app_instance=None):
     """Safely speak text without threading issues, using saved voice settings"""
     try:
+        # Set speaking flag to pause voice recognition
+        if app_instance and hasattr(app_instance, 'is_speaking'):
+            app_instance.is_speaking = True
+        
         # Get voice settings if app instance is available
         voice_settings = None
         if app_instance and hasattr(app_instance, 'voice_settings'):
@@ -122,6 +126,10 @@ def safe_tts_speak(text, app_instance=None):
             tts.speak_text(text)
     except Exception as e:
         print(f"TTS Error: {e}")
+    finally:
+        # Clear speaking flag after speech completes
+        if app_instance and hasattr(app_instance, 'is_speaking'):
+            app_instance.is_speaking = False
 
 
 class ModernAIVIGUI:
@@ -170,6 +178,7 @@ class ModernAIVIGUI:
         
         # Variables
         self.is_listening = False
+        self.is_speaking = False  # Track TTS state to prevent self-listening
         self.is_offline_mode = os.path.exists("offline_mode.flag")
         
         # Enhanced offline-first components
@@ -2914,9 +2923,15 @@ Ready for new calculations. Enter your math problem above.
         def enhanced_voice_thread():
             try:
                 while self.is_listening:
+                    # Skip listening if TTS is speaking to avoid self-listening
+                    if self.is_speaking:
+                        import time
+                        time.sleep(0.1)  # Brief pause while speaking
+                        continue
+                    
                     # Use enhanced voice manager with beep feedback
                     command = self.enhanced_voice_manager.listen_for_command()
-                    if command and self.is_listening:
+                    if command and self.is_listening and not self.is_speaking:
                         # Process the voice command
                         self.root.after(0, lambda cmd=command: self.process_enhanced_voice_command(cmd))
                     elif not self.is_listening:
@@ -2936,8 +2951,14 @@ Ready for new calculations. Enter your math problem above.
             try:
                 if voice_commands is not None:
                     while self.is_listening:
+                        # Skip listening if TTS is speaking to avoid self-listening
+                        if self.is_speaking:
+                            import time
+                            time.sleep(0.1)  # Brief pause while speaking
+                            continue
+                        
                         command = voice_commands.listen_for_command()
-                        if command and self.is_listening:
+                        if command and self.is_listening and not self.is_speaking:
                             # Process the voice command
                             self.root.after(0, lambda cmd=command: self.process_voice_command(cmd))
                 else:
