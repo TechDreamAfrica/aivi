@@ -64,6 +64,17 @@ try:
 except ImportError:
     GoogleSearchManager = None
 
+# Import conversation memory system
+try:
+    from ai_assistant.conversation_memory import (
+        get_memory, add_user_message, add_assistant_message,
+        save_current_session, get_conversation_context, get_user_stats
+    )
+    MEMORY_AVAILABLE = True
+except ImportError:
+    MEMORY_AVAILABLE = False
+    print("⚠ Conversation memory system not available")
+
 # Optional imports that may fail due to missing dependencies
 try:
     import ai_assistant.voice_commands as voice_commands

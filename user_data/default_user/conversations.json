@@ -1,0 +1,34 @@
+[
+  {
+    "session_id": "20251203_170747",
+    "start_time": "2025-12-03T17:07:47.367978",
+    "end_time": "2025-12-03T17:07:47.368020",
+    "message_count": 4,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello, I need help with math",
+        "timestamp": "2025-12-03T17:07:47.367978",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "Hello! I can help you with math. What topic interests you?",
+        "timestamp": "2025-12-03T17:07:47.368003",
+        "metadata": {}
+      },
+      {
+        "role": "user",
+        "content": "Can you explain algebra?",
+        "timestamp": "2025-12-03T17:07:47.368007",
+        "metadata": {}
+      },
+      {
+        "role": "assistant",
+        "content": "Algebra is a branch of mathematics...",
+        "timestamp": "2025-12-03T17:07:47.368020",
+        "metadata": {}
+      }
+    ]
+  }
+]
