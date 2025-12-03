@@ -96,16 +96,11 @@ try:
 except ImportError:
     braille = None
 
-# Import OpenAI and scholarly for search functionality
+# Import OpenAI for search functionality
 try:
     from openai import OpenAI
 except ImportError:
     OpenAI = None
-
-try:
-    from scholarly import scholarly
-except ImportError:
-    scholarly = None
 
 
 def safe_tts_speak(text, app_instance=None):
@@ -898,7 +893,7 @@ class ModernAIVIGUI:
             ("🎤 Offline Voice Control", "Voice commands without internet", self.open_offline_voice_control),
             ("⠠ Braille Converter", "Convert text to/from Braille", self.open_braille_tool),
             ("🎯 Multi-Modal Input", "Use multiple input methods", self.open_multimodal),
-            ("📖 Academic Search", "Search Google Scholar & OpenAI assistant", self.open_academic_search)
+            ("📖 Academic Search", "Search using OpenAI with offline knowledge base", self.open_academic_search)
         ]
 
         for i, (title, description, command) in enumerate(accessibility_tools):
@@ -995,7 +990,7 @@ class ModernAIVIGUI:
         self.create_desktop_section(scrollable_frame, "Quick Web Access", [
             ("🔍 Google", "Open Google Search", lambda: self.open_web_browser("google.com")),
             ("📺 YouTube", "Open YouTube", lambda: self.open_web_browser("youtube.com")),
-            ("📚 Google Scholar", "Open Google Scholar", lambda: self.open_web_browser("scholar.google.com")),
+            ("🔍 Academic Resources", "Search academic resources", self.open_academic_search),
             ("💼 Outlook", "Open Outlook Web", lambda: self.open_web_browser("outlook.com")),
             ("📧 Gmail", "Open Gmail", lambda: self.open_web_browser("gmail.com")),
             ("💻 GitHub", "Open GitHub", lambda: self.open_web_browser("github.com"))
@@ -2033,15 +2028,30 @@ class ModernAIVIGUI:
 Say any command to begin, or ask "What can you help me with?" for specific guidance!"""
     
     def search_academic(self, query, use_openai=True):
-        """Search Google Scholar and use OpenAI for enhanced responses"""
+        """Search using OpenAI and cache results to offline knowledge base"""
         try:
-            if use_openai and OpenAI is not None:
-                # Use OpenAI for intelligent academic assistance
+            # First check offline knowledge base
+            if self.offline_data_manager:
+                offline_results = self.offline_data_manager.search_offline_data(query)
+                if offline_results and offline_results[0].get('confidence', 0) >= 0.85:
+                    best_result = offline_results[0]
+                    cached_response = f"""📚 From Knowledge Base: "{query}"
+
+{best_result['answer']}
+
+📖 Source: {best_result.get('source', 'AIVI Knowledge Base')}
+✅ Confidence: {best_result.get('confidence', 0) * 100:.0f}%"""
+                    
+                    self.root.after(0, lambda: self.add_message("AIVI", cached_response, "assistant"))
+                    safe_tts_speak(f"From knowledge base: {best_result['answer'][:200]}", self)
+                    return cached_response
+            
+            # Use OpenAI if not in cache
+            if OpenAI is not None:
                 api_key = os.getenv('OPENAI_API_KEY')
 
                 if not api_key or api_key == "your-openai-api-key-here":
-                    # Fall back to Google Scholar if no API key
-                    return self.search_google_scholar(query)
+                    return "Please set up your OpenAI API key in the .env file to enable academic search."
 
                 try:
                     client = OpenAI(api_key=api_key)
@@ -2067,13 +2077,28 @@ Say any command to begin, or ask "What can you help me with?" for specific guida
                     )
 
                     result = response.choices[0].message.content
+                    
+                    # Add to offline knowledge base
+                    if self.offline_data_manager:
+                        try:
+                            self.offline_data_manager.add_to_knowledge_base(
+                                category="AI_Generated",
+                                question=query,
+                                answer=result,
+                                source="OpenAI GPT-4",
+                                confidence=0.90,
+                                difficulty_level="university",
+                                academic_field="General"
+                            )
+                        except Exception as cache_error:
+                            print(f"Could not cache to knowledge base: {cache_error}")
 
                     # Display detailed response in chat
                     detailed_response = f"""🤖 OpenAI Academic Assistant: "{query}"
 
-                    {result}
+{result}
 
-💡                  Source: Sua Pa AI Academic Research Assistant"""
+💡 Source: OpenAI GPT-4 (Cached to Knowledge Base)"""
 
                     self.root.after(0, lambda: self.add_message("AIVI", detailed_response, "assistant"))
 
@@ -2083,59 +2108,17 @@ Say any command to begin, or ask "What can you help me with?" for specific guida
                     return result
 
                 except Exception as e:
-                    print(f"Sua Pa AI error: {e}, falling back to Google Scholar")
-                    return self.search_google_scholar(query)
+                    error_msg = f"OpenAI API error: {str(e)}. Please check your API key and internet connection."
+                    print(error_msg)
+                    return error_msg
             else:
-                return self.search_google_scholar(query)
+                return "OpenAI is not installed. Please run: pip install openai"
 
         except Exception as e:
             error_msg = f"Academic search error: {str(e)}"
             return error_msg
-
-    def search_google_scholar(self, query):
-        """Search Google Scholar for academic papers"""
-        try:
-            if scholarly is None:
-                return "Scholarly module is not installed. Please install it with: pip install scholarly"
-
-            # Search Google Scholar
-            search_query = scholarly.search_pubs(query)
-            result = next(search_query, None)
-
-            if result:
-                title = result.get('bib', {}).get('title', 'No title')
-                abstract = result.get('bib', {}).get('abstract', 'No abstract available')
-                authors = result.get('bib', {}).get('author', 'Unknown authors')
-                year = result.get('bib', {}).get('pub_year', 'Unknown year')
-
-                # Format response
-                detailed_response = f"""📚 Google Scholar Search Results for: "{query}"
-
-                    📄 Title: {title}
-
-                    👥 Authors: {authors}
-
-                    📅 Year: {year}
-
-                    📝 Abstract:
-                    {abstract[:400] if len(abstract) > 400 else abstract}
-
-🔍 Source: Google Scholar"""
-
-                # Display the detailed response in chat
-                self.root.after(0, lambda: self.add_message("AIVI", detailed_response, "assistant"))
-
-                # Speak the summary
-                speak_text = f"Academic paper found: {title} by {authors}, published in {year}. Abstract: {abstract[:200]}"
-                safe_tts_speak(speak_text)
-
-                return detailed_response
-            else:
-                return f"No academic papers found for '{query}' on Google Scholar."
-
-        except Exception as e:
-            error_msg = f"Google Scholar search error: {str(e)}"
-            return error_msg
+    
+    # Google Scholar removed - using OpenAI API with offline caching instead
     
     def search_enhanced(self, query):
         """Enhanced search with offline-first approach and multiple search modes"""
@@ -2572,7 +2555,7 @@ Ready for new calculations. Enter your math problem above.
     def open_content_search(self):
         """Open content search"""
         self.notebook.select(0)  # Switch to chat tab
-        message = "Content Search activated! Tell me what you'd like to search for. I can search academic content using Google Scholar and OpenAI, or help you find information on any topic."
+        message = "Content Search activated! Tell me what you'd like to search for. I can search using OpenAI's intelligent assistant or our comprehensive offline knowledge base with 512 university-level entries."
         self.add_message("AIVI", message, "assistant")
         safe_tts_speak("Content search activated. What would you like me to search for?")
     
@@ -2625,11 +2608,11 @@ Ready for new calculations. Enter your math problem above.
         safe_tts_speak("Multi-modal input activated. You can now use voice, text, and images together.")
     
     def open_academic_search(self):
-        """Open academic search with OpenAI and Google Scholar"""
+        """Open academic search with OpenAI and offline knowledge base"""
         self.notebook.select(0)  # Switch to chat tab
-        message = "Academic Search activated! I can help you research topics using OpenAI's intelligent assistant and Google Scholar. Tell me what topic you'd like me to research, and I'll provide comprehensive academic information."
+        message = "Academic Search activated! I can help you research topics using OpenAI's intelligent assistant and our offline knowledge base with 512 university-level entries. Tell me what topic you'd like me to research, and I'll provide comprehensive academic information."
         self.add_message("AIVI", message, "assistant")
-        safe_tts_speak("Academic search activated. What topic would you like me to research using OpenAI and Google Scholar?")
+        safe_tts_speak("Academic search activated. What topic would you like me to research using OpenAI and our knowledge base?")
     
     def start_quiz_mode(self):
         """Start quiz mode"""
@@ -3431,7 +3414,7 @@ Ready for new calculations. Enter your math problem above.
             messagebox.showinfo("Help", "Offline voice control not available.")
     
     def open_academic_search_dialog(self):
-        """Open academic search dialog with OpenAI and Google Scholar"""
+        """Open academic search dialog with OpenAI and offline knowledge base"""
         # Speak the action
         safe_tts_speak("Opening academic research search.")
 

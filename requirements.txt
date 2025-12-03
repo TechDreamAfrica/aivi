@@ -17,7 +17,6 @@ pdfplumber>=0.9.0
 
 # AI and search services
 openai>=1.0.0
-scholarly>=1.7.0
 
 # Additional utilities
 pathlib2>=2.3.7

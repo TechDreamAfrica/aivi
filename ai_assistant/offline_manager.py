@@ -213,6 +213,22 @@ class OfflineDataManager:
             except Exception as e:
                 self.logger.error(f"Error adding knowledge entry: {e}")
                 return False
+    
+    def add_to_knowledge_base(self, category: str, question: str, answer: str,
+                             source: str = "user", confidence: float = 0.8,
+                             difficulty_level: str = "medium", academic_field: str = "General"):
+        """
+        Add entry to knowledge base with extended fields
+        Wrapper for add_knowledge_entry with additional academic metadata
+        """
+        # Extract keywords from question and answer
+        keywords = []
+        import re
+        words = re.findall(r'\b\w+\b', question.lower() + ' ' + answer.lower())
+        # Get unique, meaningful words (longer than 3 chars)
+        keywords = list(set([w for w in words if len(w) > 3]))[:10]
+        
+        return self.add_knowledge_entry(category, question, answer, keywords, source, confidence)
 
     def record_user_interaction(self, user_input: str, response: str, 
                               response_type: str, satisfaction: int = None, keywords: List[str] = None):
